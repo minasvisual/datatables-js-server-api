@@ -13,17 +13,12 @@
  *
  * @license MIT - http://datatables.net/license_mit
 
- *  Updated for 
+ *  Customized for Ulisses Mantovani
+ *  email: contato@minasvisual.com
+ *  github: https://github.com/minasvisual/datatables-js-server-api
  *
- *
- *
- *
- *
- *
- *
+ *  Based for customization joins of https://github.com/emran/ssp
  */
-
-
 
 // REMOVE THIS BLOCK - used for DataTables test environment only!
 // $file = $_SERVER['DOCUMENT_ROOT'].'/datatables/mysql.php';
