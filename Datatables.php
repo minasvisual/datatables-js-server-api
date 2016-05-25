@@ -12,7 +12,19 @@
  * side processing requirements of DataTables.
  *
  * @license MIT - http://datatables.net/license_mit
+
+ *  Updated for 
+ *
+ *
+ *
+ *
+ *
+ *
+ *
  */
+
+
+
 // REMOVE THIS BLOCK - used for DataTables test environment only!
 // $file = $_SERVER['DOCUMENT_ROOT'].'/datatables/mysql.php';
 // if ( is_file( $file ) ) {
@@ -21,85 +33,160 @@
 class Datatables 
 {
 
-	static private $config  = array();
-	static public  $columns = array();
-    static public  $tables    = array();
-	static public  $where    = array();
-	static public  $get    = array();
+	static private $config  = array();     // config of connection vars
+	static public  $columns = array();     // database columns vars
+    static public  $tables    = array();   // $tables or joins vars
+	static public  $where    = array();    // $wheres var
+	static public  $get    = array();      // method values var
+
     /**
      * boot connections info
      *
-     * @param array database config information array
+     * @param array $config information array
+     * @param array $mehtod method array ($_GET|$_POST)
      *
      * @return void
      */
-    public function __construct($config=null)
+    public function __construct($params=null)
     {
-    	$ci = &get_instance();
-		$ci->load->database();
-		Self::$config = array(
-		    'user' => $ci->db->username,
-		    'pass' => $ci->db->password,
-		    'db'   => $ci->db->database,
-		    'host' => $ci->db->hostname
-		); 
-		Self::$get = $_GET;
+        $config = ( isset($params['config'])?$params['config']:null);
+        $method = ( isset($params['method'])?$params['method']:'get');
+        
+        if( !is_null($config) )
+        {
+            Datatables::$config = $config;
+        }
+        else
+        {
+            // Personal configuration (Codeigniter adapter)
+            $ci = &get_instance();
+            $ci->load->database();
+            DataTables::$config = array(
+                'user' => $ci->db->username,
+                'pass' => $ci->db->password,
+                'db'   => $ci->db->database,
+                'host' => $ci->db->hostname
+            ); 
+        }
+        
+		Datatables::$get = ( $method == 'get') ? $_GET : $method ;
     } 
+    /**
+     * Add columns to the return
+     *
+     * @param array|string $field - Db field
+     * @param string  $alias - Db alias (join cases)
+     * @param array  $params - additional params of fields
+     * @param string $dt - column name or index personalized ( Default auto increments )
+     *
+     * @return void
+     */
+
+    public function renderJS( $selector, $params, $lang=null, $urlParams=null, $inst='table' )
+    {
+
+        $out  = "var $inst = $('$selector').DataTable({ 
+                     dom: 'l<\"toolbar\">frtip',
+                    'language':{ url: '".( !is_null($lang) ? $lang : "//cdn.datatables.net/plug-ins/1.10.11/i18n/Portuguese-Brasil.json" )."' }, 
+                     $params
+                ";
+        if( !is_null($urlParams) )
+        {
+            $out .= "'fnServerParams': function (d ){ \n";
+            foreach ($urlParams as $key => $value) {
+                $out .= "   d['$key'] = $value; \n";
+            }
+            $out .= "\n}, ";
+        }
+        $out .= "\n});"; 
+
+        return $out;
+    }
 
 	/**
      * Add columns to the return
      *
-     * @param array database config information array
+     * @param array|string $field - Db field
+     * @param string  $alias - Db alias (join cases)
+     * @param array  $params - additional params of fields
+     * @param string $dt - column name or index personalized ( Default auto increments )
      *
      * @return void
      */
     public function addCols($field, $alias=null, $params=array(), $dt=null )
     {
-    	$column = array_merge( 
-    		array( 
-	    		'db' => ( (!is_null($alias))?'`'.$alias.'`.':'').'`'.$field.'`', 
-	    		'field' => ( !isset( $params['field'] ) ? $field : $params['field'] ), 
-	    		'dt'=>( (!is_null($dt)) ? $dt : count(Self::$columns) ) 
-    		),
-    		$params
-    	);
-    	Self::$columns[] =  $column;
+        if( is_array($field) )
+        { 
+            foreach ($field as $row) { 
+                $this->addCols( $row[0], @$row[1], ( (is_array(@$row[2])) ? $row[2]:array() ), @$row[3] ); 
+            } 
+        }
+        else
+        {
+        	$column = array_merge( 
+        		array( 
+    	    		'db' => ( (!is_null($alias))?'`'.$alias.'`.':'').'`'.$field.'`', 
+    	    		'field' => ( !isset( $params['field'] ) ? $field : $params['field'] ), 
+    	    		'dt'=>( (!is_null($dt)) ? $dt : count(Datatables::$columns) ) 
+        		),
+        		$params
+        	);
+        	Datatables::$columns[] =  $column;
+        }
     }
 
 	/**
-     * Add columns to the return
+     * get columns to the return rendered
      *
-     * @param array database config information array
+     * @param string - unique field to return 
      *
      * @return void
      */
-    public function getCols($field=null, $table=null )
+    public function getCols($field=null)
     {
-	    	return  Self::$columns;
+        if( is_null($field) )
+	    	return  Datatables::$columns;
+        else
+            return  Datatables::$columns[ $field ];
     }
 
 	/**
-     * Add columns to the return
+     * Add table to join
      *
-     * @param array database config information array
+     * @param array|string database table(s) to join ( array add for batch process )
+     * @param array $key - table primary key
+     * @param array $alias - table alias for joins
+     * @param array $join_table - table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     * @param array $fk - foreign key in this table of join table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
      *
      * @return void
      */
-    public function addTables($table, $key, $alias=null, $join_table=null, $fk=null  )
+    public function addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null  )
     {
-	    	Self::$tables[$table] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>$join_table, 'fk'=>$fk);
+            if( is_array($table) )
+            {
+                foreach ($table as $row) 
+                {
+                        $this->addTables( $row[0],$row[1],@$row[2],@$row[3],@$row[4] );
+                }    
+            }
+            else
+            {
+                Datatables::$tables[$table] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>$join_table, 'fk'=>$fk);
+            }
+            
     }
 
     /**
-     * Add columns to the return
+     * Add get to join
      *
-     * @param array database config information array
+     * @param string $table - return unique table join
      *
-     * @return void
+     * @return  String - SQL line of join
      */
     public function getTables($table=null )
     {
-    		$tables = Self::$tables;
+    		$tables = Datatables::$tables;
 
             if(   !is_null($table) && isset($tables[$table])   )  return ' `'.$tables[$table].'` '.( (!is_null($tables[$table])) ? 'AS `'.$tables[$table].'`':' ' ); 
 
@@ -113,7 +200,7 @@ class Datatables
     			if( $count > 0 && !is_null($tb['join']) && isset($tables[$tb['join']]) )
     			{
     				$tb2 = $tables[$tb['join']];
-    				$join .= 'JOIN `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':'' ).' ON (`'.$tb2['alias'].'`.'.$tb2['key'].' = `'.$tb['alias'].'`.'.$tb['fk'].') ';
+    				$join .= ' JOIN `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':'' ).' ON (`'.$tb2['alias'].'`.'.$tb2['key'].' = `'.$tb['alias'].'`.'.$tb['fk'].') ';
     			}
 
     			$count++;
@@ -122,22 +209,52 @@ class Datatables
 	    	return  $join;
     }
 
-    public function addWhere($field, $value, $alias=null, $op='=' )
+     /**
+     * Add where clause query
+     *
+     * @param string $field - field to where (Array to batch add)
+     * @param string $value - value to where
+     * @param string $alias - table alias to join
+     * @param string $op - operation beetween field and value (default '=')
+     * @param string $concat - concat operation with next where (default 'and')
+     *
+     * @return  void
+     */
+    public function addWhere($field, $value='', $alias=null, $op='=', $concat='and' )
     {
-        Self::$where[$field] = array('field'=>$field, 'value'=>$value, 'alias'=>$alias, 'op'=>$op);
+        if( is_array($field) ) 
+        {
+            foreach ($field as $row) {
+                 $this->addWhere( $row[0], $row[1], @$row[2], ( isset($row[3]) ? $row[3]:'=' ), ( isset($row[4])?$row[4]:'and') ); 
+             }
+        }
+        else
+        {
+            Datatables::$where[] = array('field'=>$field, 'value'=>$value, 'alias'=>$alias, 'op'=>$op, 'concat'=>$concat);
+        }
     }
 
+     /**
+     * Get where clause rendered
+     *
+     * @param string $field - return unique field where
+     *
+     * @return  String - SQL line of where
+     */
     public function getWhere($field=null)
     {
-        $fields = Self::$where;
+        $fields = Datatables::$where;
 
-        if(   !is_null($field) && isset($fields[$field])   )  
-            return ( (!is_null($fields[$field]['alias'])) ? '`'.$fields[$field]['alias'].'`.':'' ).'`'.$fields[$field]['field'].'` '.$$fields[$field]['op'].' '.$fields[$field]['value'].' ';
-        
-        $rtn = ' ';
-        foreach ($variable as $row) 
+        if( !is_null($field) ) foreach ($fields as $row) { if( $row['field'] == $field ) $fields = $row; }
+
+        $rtn = ''; $count = count($fields);
+        foreach ($fields as $row) 
         {
-            $rtn .= ( (!is_null($$row['alias'])) ? '`'.$$row['alias'].'`.':'' ).'`'.$row['alias'].'` '.$$row['op'].' '.$$row['value'].' ';
+            $rtn .= ' '.( (!is_null($row['alias'])) ? '`'.$row['alias'].'`.':'' ).'`'.$row['field'].'` '.$row['op'].' \''.$row['value'].'\' ';
+            if( $count > 1 )
+                $rtn .= ' '.$row['concat'].' ';
+
+            $count--;
         }
 
         return $rtn;
@@ -301,15 +418,19 @@ class Datatables
      *  @return array  Server-side processing response array
      *
      */
-    static function simple ( $columns, $joinQuery = NULL, $extraWhere = '', $groupBy = '')
+    static function render ( $columns=null, $joinQuery = NULL, $extraWhere = '', $groupBy = '')
     {
         $bindings = array();
-       	$sql_details = Datatables::$config;
-       	$request = Self::$get;
+       	$sql_details = Datatables::$config;  // set config connection
+       	$request = Datatables::$get;               // set method vars requested
 
-       	$tb = reset(Self::$tables);
-       	$table = $tb['table'];
-		$primaryKey = $tb['key'];
+       	$tb = reset(Datatables::$tables);          //  get first table of tables
+       	$table = $tb['table'];               //  table
+		$primaryKey = $tb['key'];            //  primary key
+
+        if( is_null($columns) ) $columns = Datatables::getCols(); 
+        if( is_null($joinQuery) && count(Datatables::$tables) > 1 ) $joinQuery = Datatables::getTables(); 
+        if( empty($$extraWhere) && count(Datatables::$where) > 0 ) $extraWhere = Datatables::getWhere(); 
 
         $db = Datatables::sql_connect( $sql_details );
 
@@ -326,21 +447,10 @@ class Datatables
         // Main query to actually get the data
         if($joinQuery){
             $col = Datatables::pluck($columns, 'db', $joinQuery);
-            $query =  "SELECT SQL_CALC_FOUND_ROWS ".implode(", ", $col)."
-			 $joinQuery
-			 $where
-			 $extraWhere
-			 $groupBy
-			 $order
-			 $limit";
+            $query =  "SELECT SQL_CALC_FOUND_ROWS ".implode(", ", $col)." $joinQuery $where $extraWhere $groupBy $order $limit";
         }else{
-            $query =  "SELECT SQL_CALC_FOUND_ROWS `".implode("`, `", Datatables::pluck($columns, 'db'))."`
-			 FROM `$table`
-			 $where
-			 $extraWhere
-			 $groupBy
-			 $order
-			 $limit";
+            $query =  "SELECT SQL_CALC_FOUND_ROWS `".implode("`, `", Datatables::pluck($columns, 'db')).
+                           "` FROM `$table` $where $extraWhere $groupBy $order $limit";
         }
         
         $data = Datatables::sql_exec( $db, $bindings,$query);
