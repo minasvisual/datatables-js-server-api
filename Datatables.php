@@ -137,7 +137,7 @@ class Datatables
      *
      * @return void
      */
-    public function getCols($field=null)
+    public static function getCols($field=null)
     {
         if( is_null($field) )
 	    	return  Datatables::$columns;
@@ -179,7 +179,7 @@ class Datatables
      *
      * @return  String - SQL line of join
      */
-    public function getTables($table=null )
+    public static function getTables($table=null )
     {
     		$tables = Datatables::$tables;
 
@@ -236,7 +236,7 @@ class Datatables
      *
      * @return  String - SQL line of where
      */
-    public function getWhere($field=null)
+    public static function getWhere($field=null)
     {
         $fields = Datatables::$where;
 
