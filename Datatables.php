@@ -273,11 +273,11 @@ class Datatables
                 $column = $columns[$j];
                 // Is there a formatter?
                 if ( isset( $column['formatter'] ) ) {
-                    $row[ $column['dt'] ] = ($isJoin) ? $column['formatter']( $data[$i][ $column['field'] ], $data[$i] ) : $column['formatter']( $data[$i][ $column['db'] ], $data[$i] );
+                    $row[ $column['dt'] ] = ($isJoin) ? $column['formatter']( $data[$i][ $column['field'] ], $data[$i] ) : $column['formatter']( $data[$i][ str_replace('`','',$column['db']) ], $data[$i] );
                 }
                 else 
                 {
-                    $row[ @$column['dt'] ] = ($isJoin) ? $data[$i][ @$columns[$j]['field'] ] : $data[$i][ @$columns[$j]['db'] ];
+                    $row[ @$column['dt'] ] = ($isJoin) ? $data[$i][ @$columns[$j]['field'] ] : $data[$i][ str_replace('`','',@$columns[$j]['db']) ];
                 }
             }
             $out[] = $row;
@@ -328,7 +328,7 @@ class Datatables
                     $dir = $request['order'][$i]['dir'] === 'asc' ?
                         'ASC' :
                         'DESC';
-                    $orderBy[] = ($isJoin) ? $column['db'].' '.$dir : '`'.$column['db'].'` '.$dir;
+                    $orderBy[] = ($isJoin) ? $column['db'].' '.$dir : '`'.str_replace('`','',$column['db']).'` '.$dir;
                 }
             }
             $order = 'ORDER BY '.implode(', ', $orderBy);
@@ -364,20 +364,21 @@ class Datatables
                 $column = $columns[ $columnIdx ];
                 if ( $requestColumn['searchable'] == 'true' ) {
                     $binding = Datatables::bind( $bindings, '%'.$str.'%', PDO::PARAM_STR );
-                    $globalSearch[] = ($isJoin) ? $column['db']." LIKE ".$binding : "`".$column['db']."` LIKE ".$binding;
+                    $globalSearch[] = ($isJoin) ? $column['db']." LIKE ".$binding : "`".str_replace('`','',$column['db'])."` LIKE ".$binding;
                 }
             }
         }
         // Individual column filtering
-        for ( $i=0, $ien=count(@$request['columns']) ; $i<$ien ; $i++ ) {
+        for ( $i=0, $ien=count(@$request['columns']) ; $i<$ien ; $i++ ) 
+        {
             $requestColumn = $request['columns'][$i];
             $columnIdx = array_search( $requestColumn['data'], $dtColumns );
             $column = $columns[ $columnIdx ];
             $str = $requestColumn['search']['value'];
-            if ( $requestColumn['searchable'] == 'true' &&
-                $str != '' ) {
+            if ( $requestColumn['searchable'] == 'true' && $str != '' ) 
+            {
                 $binding = Datatables::bind( $bindings, '%'.$str.'%', PDO::PARAM_STR );
-                $columnSearch[] = ($isJoin) ? $column['db']." LIKE ".$binding : "`".$column['db']."` LIKE ".$binding;
+                $columnSearch[] = ($isJoin) ? $column['db']." LIKE ".$binding : "`".str_replace('`','',$column['db'])."` LIKE ".$binding;
             }
         }
         // Combine the filters into a single string
@@ -421,7 +422,8 @@ class Datatables
 
        	$tb = reset(Datatables::$tables);          //  get first table of tables
        	$table = $tb['table'];               //  table
-		$primaryKey = $tb['key'];            //  primary key
+        $primaryKey = $tb['key'];            //  primary key
+		$tbalias = ( !is_null($tb['alias']) ? ' '.$tb['alias']:'');            //  alias
 
         if( is_null($columns) ) $columns = Datatables::getCols(); 
         if( is_null($joinQuery) && count(Datatables::$tables) > 1 ) $joinQuery = Datatables::getTables(); 
@@ -444,10 +446,10 @@ class Datatables
             $col = Datatables::pluck($columns, 'db', $joinQuery);
             $query =  "SELECT SQL_CALC_FOUND_ROWS ".implode(", ", $col)." $joinQuery $where $extraWhere $groupBy $order $limit";
         }else{
-            $query =  "SELECT SQL_CALC_FOUND_ROWS `".implode("`, `", Datatables::pluck($columns, 'db')).
-                           "` FROM `$table` $where $extraWhere $groupBy $order $limit";
+            $query =  "SELECT SQL_CALC_FOUND_ROWS ".implode(", ", Datatables::pluck($columns, 'db')).
+                           " FROM `$table` `$tbalias` $where $extraWhere $groupBy $order $limit";
         }
-        
+        //echo $query;
         $data = Datatables::sql_exec( $db, $bindings,$query);
         // Data set length after filtering
         $resFilterLength = Datatables::sql_exec( $db,
@@ -457,7 +459,7 @@ class Datatables
         // Total data set length
         $resTotalLength = Datatables::sql_exec( $db,
             "SELECT COUNT(`{$primaryKey}`)
-			 FROM   `$table`"
+			 FROM   `$table` `$tbalias`"
         );
         $recordsTotal = $resTotalLength[0][0];
         /*
