@@ -156,18 +156,18 @@ class Datatables
      *
      * @return void
      */
-    public function addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null  )
+    public function addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null, $join_type='' )
     {
             if( is_array($table) )
             {
                 foreach ($table as $row) 
                 {
-                        $this->addTables( $row[0],$row[1],@$row[2],@$row[3],@$row[4] );
+                        $this->addTables( $row[0],$row[1],@$row[2],@$row[3],@$row[4],@$row[5] );
                 }    
             }
             else
             {
-                Datatables::$tables[$table] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>$join_table, 'fk'=>$fk);
+                Datatables::$tables[$table] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>$join_table, 'fk'=>$fk, 'join_type'=>$join_type);
             }
             
     }
@@ -195,7 +195,7 @@ class Datatables
     			if( $count > 0 && !is_null($tb['join']) && isset($tables[$tb['join']]) )
     			{
     				$tb2 = $tables[$tb['join']];
-    				$join .= ' JOIN `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':'' ).' ON (`'.$tb2['alias'].'`.'.$tb2['key'].' = `'.$tb['alias'].'`.'.$tb['fk'].') ';
+    				$join .= $tb['join_type'].' JOIN `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':'' ).' ON (`'.$tb2['alias'].'`.'.$tb2['key'].' = `'.$tb['alias'].'`.'.$tb['fk'].') ';
     			}
 
     			$count++;

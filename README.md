@@ -39,8 +39,8 @@ $dt->addCols(
 
 <h3>Adding tables ( required least 1 )</h3>
 <pre>
-// addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null  )
-$dt->addTables( 'posts', 'post_id', 'p', 'categories', 'category_id');
+// addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null, $join_type=''  )
+$dt->addTables( 'posts', 'post_id', 'p', 'categories', 'category_id', 'LEFT');
 //or
 $dt->addTables( array(
 				array( 'categories', 'category_id', 'c' ),
