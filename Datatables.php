@@ -28,6 +28,7 @@
 class Datatables 
 {
 
+    private $tableJoin = '';
 	static private $config  = array();     // config of connection vars
 	static public  $columns = array();     // database columns vars
     static public  $tables    = array();   // $tables or joins vars
@@ -108,7 +109,7 @@ class Datatables
      *
      * @return void
      */
-    public function addCols($field, $alias=null, $params=array(), $dt=null )
+    public function addCols($field, $alias=null, $params=array(), $as='', $dt=null )
     {
         if( is_array($field) )
         { 
@@ -118,11 +119,13 @@ class Datatables
         }
         else
         {
+           
         	$column = array_merge( 
         		array( 
     	    		'db' => ( (!is_null($alias))?'`'.$alias.'`.':'').'`'.$field.'`', 
     	    		'field' => ( !isset( $params['field'] ) ? $field : $params['field'] ), 
-    	    		'dt'=>( (!is_null($dt)) ? $dt : count(Datatables::$columns) ) 
+    	    		'dt'=>( (!is_null($dt)) ? $dt : count(Datatables::$columns) ),
+                    'as'=>$as
         		),
         		$params
         	);
@@ -156,20 +159,21 @@ class Datatables
      *
      * @return void
      */
-    public function addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null, $join_type='' )
+    public function addTables(  $table, $key='id', $alias )
     {
             if( is_array($table) )
             {
                 foreach ($table as $row) 
                 {
-                        $this->addTables( $row[0],$row[1],@$row[2],@$row[3],@$row[4],@$row[5] );
+                        $this->addTables( $row[0],$row[1],@$row[2] );
                 }    
             }
             else
             {
-                Datatables::$tables[$table] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>$join_table, 'fk'=>$fk, 'join_type'=>$join_type);
+                Datatables::$tables[$table.'_'.$alias] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias);
+                $this->tableJoin = $table.'_'.$alias;
+                return $this;
             }
-            
     }
 
     /**
@@ -179,11 +183,9 @@ class Datatables
      *
      * @return  String - SQL line of join
      */
-    public static function getTables($table=null )
+    public static function getTables()
     {
     		$tables = Datatables::$tables;
-
-            if(   !is_null($table) && isset($tables[$table])   )  return ' `'.$tables[$table].'` '.( (!is_null($tables[$table])) ? 'AS `'.$tables[$table].'`':' ' ); 
 
     		$join = 'FROM '; $count = 0;
     		foreach($tables as $tb)
@@ -192,16 +194,31 @@ class Datatables
     			{
     				$join .= ' `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':' ' ); 
     			}
-    			if( $count > 0 && !is_null($tb['join']) && isset($tables[$tb['join']]) )
+    			if( is_array($tb['join']) && count($tb['join']) > 0 ) 
     			{
-    				$tb2 = $tables[$tb['join']];
-    				$join .= $tb['join_type'].' JOIN `'.$tb['table'].'` '.( (!is_null($tb['alias'])) ? 'AS `'.$tb['alias'].'`':'' ).' ON (`'.$tb2['alias'].'`.'.$tb2['key'].' = `'.$tb['alias'].'`.'.$tb['fk'].') ';
+                    foreach( $tb['join'] as $k=>$v ) 
+                    {
+                           $join .= $v['join_type'].' JOIN `'.$v['join'].'` '.( (!is_null($v['join_alias'])) ? 'AS `'.$v['join_alias'].'`':'' ).' ON (`'.$v['join_alias'].'`.'.$v['join_pk'].' = `'.$tb['alias'].'`.'.$v['fk'].') ';
+                        
+                    }       
     			}
 
     			$count++;
     		}
 
 	    	return  $join;
+    }
+
+    public function addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='' )
+    {
+        Datatables::$tables[$this->tableJoin]['join'][$join_table.'_'.$join_alias] = array(
+            'join'=>$join_table, 
+            'join_pk'=>$join_pk, 
+            'join_alias'=>$join_alias, 
+            'fk'=>$fk, 
+            'join_type'=>$join_type
+        );
+        return $this;
     }
 
      /**
@@ -277,7 +294,7 @@ class Datatables
                 }
                 else 
                 {
-                    $row[ @$column['dt'] ] = ($isJoin) ? $data[$i][ @$columns[$j]['field'] ] : $data[$i][ str_replace('`','',@$columns[$j]['db']) ];
+                    $row[ @$column['dt'] ] = ($isJoin) ? ( isset($data[$i][ @$columns[$j]['field'] ]) ? $data[$i][ @$columns[$j]['field'] ]:$data[$i][ @$columns[$j]['as'] ] ) : $data[$i][ str_replace('`','',@$columns[$j]['db']) ];
                 }
             }
             $out[] = $row;
@@ -426,7 +443,7 @@ class Datatables
 		$tbalias = ( !is_null($tb['alias']) ? ' '.$tb['alias']:'');            //  alias
 
         if( is_null($columns) ) $columns = Datatables::getCols(); 
-        if( is_null($joinQuery) && count(Datatables::$tables) > 1 ) $joinQuery = Datatables::getTables(); 
+        if( is_null($joinQuery) && count($tb['join']) > 0 ) $joinQuery = Datatables::getTables(); 
         if( empty($$extraWhere) && count(Datatables::$where) > 0 ) $extraWhere = Datatables::getWhere(); 
 
         $db = Datatables::sql_connect( $sql_details );

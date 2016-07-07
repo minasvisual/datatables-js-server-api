@@ -2,7 +2,7 @@
 	require "DataTables.php";//set config connections and requests
 	$config['config'] = [
 		                'user' => 'root',
-		                'pass' => '',
+		                'pass' => '123mudar',
 		                'db'   => 'test',
 		                'host' => 'localhost'
 		            ]; 
@@ -10,17 +10,15 @@
 
 	if( !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' )
 	{
-
-		
-		$dt->addTables( 'users', 'id', 'u');
-		$dt->addTables( 'posts', 'id', 'p', 'users','user_id');
+		$dt->addTables( 'posts', 'id', 'p')->addJoin('users', 'id', 'u', 'user_id')->addJoin('users','id','a','autor');
 		$dt->addCols( 
 	         [
 	            ['title', 'p'],
-	            ['name', 'u'],
+	            ['name', 'a',[], 'aname'],
+	            ['name', 'u',[], 'uname'],
 	            ['email', 'u'],
 	            ['date', 'p', ['formatter' => function( $value, $row ){
-	                    return [ 'display'=>date( 'd/m/Y', strtotime($value) ), 'timestamp'=>$d=$value ]; // output formated
+	                    return [ 'display'=>date( 'd/m/Y', strtotime($value) ), 'timestamp'=>$value ]; // output formated
 	                }]
 	            ]
 	        ] // end params
@@ -44,6 +42,7 @@
         <thead>
             <tr>
                 <th>Title</th>
+                <th>Autor</th>
                 <th>User</th>
                 <th>Email</th>
                 <th>Post Date</th>
@@ -63,7 +62,7 @@
                 "type": "GET"
             },
             "columnDefs": [      // columns modifications
-                {  targets: 3, render: { _: "display",  sort: "timestamp"  }    }, //get date formated
+                {  targets: 4, render: { _: "display",  sort: "timestamp"  }    }, //get date formated
         	],'
         );?>
 	} );
