@@ -1,4 +1,4 @@
-# datatables-js-server-api
+# datatables-js-server-api (Use release 1.1)
 This api help to datatables server-side integrations by SSP code otimized
 
 #How to use:
