@@ -27,7 +27,7 @@ $dt->addCols( 'post_id', 'p' );
 $dt->addCols( 
 				array( 
 					array('title', 'p' ),
-					array('category', 'c' ),
+					array('category', 'c', ['as'=>'cat'] ),
 					array('created_at', 'p', 
 					      array( 'formatter' => function( $d, $row ) {
             				return array( 'display'=>date( 'd/m/Y', strtotime($d) ), 'timestamp'=>$d ); // output formated
@@ -39,13 +39,19 @@ $dt->addCols(
 
 <h3>Adding tables ( required least 1 )</h3>
 <pre>
-// addTables(  $table, $key='id', $alias=null, $join_table=null, $fk=null, $join_type=''  )
-$dt->addTables( 'posts', 'post_id', 'p', 'categories', 'category_id', 'LEFT');
+// addTables(  $table, $key='id', $alias  )
+$dt->addTables( 'posts', 'post_id', 'p');
 //or
 $dt->addTables( array(
 				array( 'categories', 'category_id', 'c' ),
 				...
 			));
+</pre>
+
+<h3>Adding joins (new method linked)</h3>
+<pre>
+// addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='' )
+$dt->addTables( 'posts', 'id', 'p')->addJoin('users', 'id', 'u', 'user_id', 'LEFT')->addJoin('users','id','a','autor')
 </pre>
 
 <h3>Add additional where </h3>

@@ -2,7 +2,7 @@
 	require "DataTables.php";//set config connections and requests
 	$config['config'] = [
 		                'user' => 'root',
-		                'pass' => '123mudar',
+		                'pass' => '',
 		                'db'   => 'test',
 		                'host' => 'localhost'
 		            ]; 
@@ -10,12 +10,15 @@
 
 	if( !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' )
 	{
-		$dt->addTables( 'posts', 'id', 'p')->addJoin('users', 'id', 'u', 'user_id')->addJoin('users','id','a','autor');
+		$dt->addTables( 'posts', 'id', 'p')
+			->addJoin('users', 'id', 'u', 'user_id')
+			->addJoin('users','id','a','autor');
+			
 		$dt->addCols( 
 	         [
 	            ['title', 'p'],
-	            ['name', 'a',[], 'aname'],
-	            ['name', 'u',[], 'uname'],
+	            ['name', 'a',['as'=>'aname'] ],
+	            ['name', 'u',['as'=>'uname']],
 	            ['email', 'u'],
 	            ['date', 'p', ['formatter' => function( $value, $row ){
 	                    return [ 'display'=>date( 'd/m/Y', strtotime($value) ), 'timestamp'=>$value ]; // output formated

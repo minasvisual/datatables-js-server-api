@@ -29,6 +29,8 @@ class Datatables
 {
 
     private $tableJoin = '';
+    private $colJoin = '';
+
 	static private $config  = array();     // config of connection vars
 	static public  $columns = array();     // database columns vars
     static public  $tables    = array();   // $tables or joins vars
@@ -104,12 +106,12 @@ class Datatables
      *
      * @param array|string $field - Db field
      * @param string  $alias - Db alias (join cases)
-     * @param array  $params - additional params of fields
+     * @param array  $params - additional params of fields (ex: formatter=callback, as=query alias)
      * @param string $dt - column name or index personalized ( Default auto increments )
      *
      * @return void
      */
-    public function addCols($field, $alias=null, $params=array(), $as='', $dt=null )
+    public function addCols($field, $alias=null, $params=array(), $dt=null )
     {
         if( is_array($field) )
         { 
@@ -124,12 +126,12 @@ class Datatables
         		array( 
     	    		'db' => ( (!is_null($alias))?'`'.$alias.'`.':'').'`'.$field.'`', 
     	    		'field' => ( !isset( $params['field'] ) ? $field : $params['field'] ), 
-    	    		'dt'=>( (!is_null($dt)) ? $dt : count(Datatables::$columns) ),
-                    'as'=>$as
+    	    		'dt'=>( (!is_null($dt)) ? $dt : count(Datatables::$columns) )
         		),
         		$params
         	);
         	Datatables::$columns[] =  $column;
+
         }
     }
 
@@ -154,8 +156,6 @@ class Datatables
      * @param array|string database table(s) to join ( array add for batch process )
      * @param array $key - table primary key
      * @param array $alias - table alias for joins
-     * @param array $join_table - table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
-     * @param array $fk - foreign key in this table of join table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
      *
      * @return void
      */
@@ -170,7 +170,7 @@ class Datatables
             }
             else
             {
-                Datatables::$tables[$table.'_'.$alias] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias);
+                Datatables::$tables[$table.'_'.$alias] = array('table'=>$table, 'key'=>$key, 'alias'=>$alias, 'join'=>array() );
                 $this->tableJoin = $table.'_'.$alias;
                 return $this;
             }
@@ -209,6 +209,17 @@ class Datatables
 	    	return  $join;
     }
 
+    /**
+     * Add join tables
+     *
+     * @param string $join_table - table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     * @param string $join_pk - primary key in this table of join table for join content ( join <$join_table> <$alias> on <$fk>.<$table> = <$join_alias>.<$join_pk>) 
+     * @param string $join_alias - table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     * @param string $fk - foreign key in this table of join table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     * @param string $join_type - type of join ( LEFT|RIGHT join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     *
+     * @return  Instance 
+     */
     public function addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='' )
     {
         Datatables::$tables[$this->tableJoin]['join'][$join_table.'_'.$join_alias] = array(

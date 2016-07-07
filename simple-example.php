@@ -10,7 +10,7 @@
 
 	if( !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest' )
 	{
-		$dt->addTables( 'users', 'id');
+		$dt->addTables( 'users', 'id', 'u');
 		$dt->addCols( 
 	         [
 	            ['name'],
