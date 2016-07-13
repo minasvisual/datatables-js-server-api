@@ -50,7 +50,7 @@ $dt->addTables( array(
 
 <h3>Adding joins (new method linked)</h3>
 <pre>
-// addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='' )
+// addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='', $target_alias=null )
 $dt->addTables( 'posts', 'id', 'p')->addJoin('users', 'id', 'u', 'user_id', 'LEFT')->addJoin('users','id','a','autor')
 </pre>
 
