@@ -198,8 +198,9 @@ class Datatables
     			{
                     foreach( $tb['join'] as $k=>$v ) 
                     {
-                           $join .= $v['join_type'].' JOIN `'.$v['join'].'` '.( (!is_null($v['join_alias'])) ? 'AS `'.$v['join_alias'].'`':'' ).' ON (`'.$v['join_alias'].'`.'.$v['join_pk'].' = `'.$tb['alias'].'`.'.$v['fk'].') ';
-                        
+                           $join .= $v['join_type'].' JOIN `'.$v['join'].'` '.( (!is_null($v['join_alias'])) ? 'AS `'.$v['join_alias'].'`':'' )
+                                            .' ON (`'.$v['join_alias'].'`.'.$v['join_pk']
+                                                .' = `'.( (!is_null($v['table_alias'])) ? $v['table_alias']:$tb['alias'] ).'`.'.$v['fk'].') ';
                     }       
     			}
 
@@ -217,17 +218,19 @@ class Datatables
      * @param string $join_alias - table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
      * @param string $fk - foreign key in this table of join table for join content ( join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
      * @param string $join_type - type of join ( LEFT|RIGHT join <$join_table> <$alias> on <$fk> = <$join_table_PK>) 
+     * @param string $table_alias - target table alias ( optional join <$join_table> <$alias> on <$table_alias>.<$fk> = <join_alias>.<$join_table_PK>) 
      *
      * @return  Instance 
      */
-    public function addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='' )
+    public function addJoin( $join_table, $join_pk, $join_alias, $fk, $join_type='', $table_alias=null )
     {
         Datatables::$tables[$this->tableJoin]['join'][$join_table.'_'.$join_alias] = array(
             'join'=>$join_table, 
             'join_pk'=>$join_pk, 
             'join_alias'=>$join_alias, 
-            'fk'=>$fk, 
-            'join_type'=>$join_type
+            'fk'=>$fk,
+            'join_type'=>$join_type,
+                        'table_alias'=>$table_alias
         );
         return $this;
     }
