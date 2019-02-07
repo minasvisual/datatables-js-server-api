@@ -67,7 +67,7 @@ class Datatables
             ); 
         }
         
-		Datatables::$get = ( $method == 'get') ? $_GET : $method ;
+		Datatables::$get = $_REQUEST;//( $method == 'get') ? $_REQUEST : $method ;
     } 
     /**
      * Add columns to the return

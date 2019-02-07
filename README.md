@@ -13,8 +13,6 @@ $config['config'] = array(
                 'db'   => 'db name',
                 'host' => 'host'
             ); 
-// optional
-$config['method'] = $_GET or $_POST; 
 
 $dt = new Datatables( $config );
 </pre>
@@ -81,7 +79,7 @@ $dt->renderJS(
 			"serverSide": true,  // server side
 			"ajax": {            // data source
 				"url": "path/to/data",
-				"type": "GET"
+				"type": "GET"    // Use POST if you prefer
 			},
 			"columnDefs": [      // columns modifications
 	            {  targets: 2, render: { _: "display",  sort: "timestamp"  }  	}, //get date formated
